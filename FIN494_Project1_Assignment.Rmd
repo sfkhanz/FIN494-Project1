@@ -1,0 +1,171 @@
+---
+title: "FIN 494 — Project 1: Build and Defend a Security Universe"
+subtitle: "Complete assignment: broad download, documented screens, reproducible universe"
+author: "Justin Shea"
+date: "Fall 2026"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    self_contained: true
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 2
+geometry: margin=1in
+fontsize: 11pt
+---
+
+# The finished project
+
+**Build a reproducible security universe from a broad WRDS download. Explain who qualifies, who does not, and how your screening decisions change the sample.**
+
+Your final artifact is a dated list of eligible securities, accompanied by code and an audit that accounts for every security in the starting download. Your financial question is: **How does adding a liquidity requirement to a size-based common-stock universe change its composition?**
+
+Project 1 remains **8% of the course grade**. Canvas supplies the deadline, team arrangements, detailed rubric, and submission destination. Each student records their own rules, pseudocode, prediction, and checked result before team integration. This assignment completes the existing project; it introduces no new due date.
+
+The ZIP includes the assignment, source notes, a report template, and runnable code. Use the starter's `README.html` for commands.
+
+# How Parts 1 and 2 connect
+
+| Work | Keep and extend |
+|---|---|
+| Part 1, September 23 | Your checked R workflow, source note, common-stock definition, and capitalization screen of at least $1 billion |
+| Class 06 practice | EDA, preserved keys after a join, missingness policy, independent checks, and a comparison of eligibility choices |
+| Project completion | Retrieve the broad snapshot, apply classification locally, calculate documented liquidity inputs, and deliver the final universe and exclusion audit |
+
+The Class 05 query already filtered to a common-stock population. Reuse its reasoning, but use this starter's broader retrieval for the final audit: excluded security types cannot be recovered from that earlier filtered download. Class 06's S01–S12 fixture is practice data. Its A/B rules and invented September dates do not replace your actual extract or the $1 billion baseline.
+
+# 1. Define and download the starting population
+
+Use the assigned historical observation date, **December 31, 2025**. Here, “all securities” means **every security record in the approved CRSP CIZ monthly source at that date**, before your eligibility rules. It is a complete cross-section within that source's coverage. The source does not cover every instrument worldwide, and this assignment does not request its entire history.
+
+The prepared candidate is `crsp.msf_v2` through WRDS. The monthly query restricts only `mthcaldt`. It has no selected-ticker list, row limit, security-type filter, exchange filter, size filter, or liquidity filter. Save the raw download unchanged. The starter compares retrieved rows with an independent server count in the same read-only transaction.
+
+Retrieve these fields:
+
+| Purpose | Fields |
+|---|---|
+| Security, company, date | `permno`, `permco`, `mthcaldt` |
+| Security capitalization | `mthcap` |
+| Instrument and issuer | `sharetype`, `securitytype`, `securitysubtype`, `usincflg`, `issuertype` |
+| Listing and trading status | `primaryexch`, `conditionaltype`, `tradingstatusflg` |
+
+Also retrieve `permno`, `dlycaldt`, `dlyprc`, and `dlyvol` from the corresponding daily source, `crsp.dsf_v2`, for the common 20-session window ending on or before the snapshot date. The starter finds the last 20 distinct source dates within November 1–December 31 and saves them. Daily retrieval includes the entire monthly cohort, before screening. A monthly security with no daily observations remains in your audit.
+
+Verify the product, release, available fields, date coverage, and units using the linked WRDS/CRSP documentation in `DATA_SPECIFICATION.html`. The instructor completes live preflight before assigning the live commands. Your own authorized account runs the download locally. Keep licensed observations and results in the configured private data folder outside Git and the AI workspace.
+
+**Save:** source/product/release, exact queries and fields, observation date, download time, expected and fetched counts, and the 20 window dates. Do not substitute a convenient ticker list or claim a preset total such as 6,000.
+
+# 2. Inspect the broad data before screening
+
+Write what one monthly row and one daily row represent. Check:
+
+- Unique monthly `(permno, mthcaldt)` and daily `(permno, dlycaldt)` keys.
+- Security counts, distinct known company counts, and missing company identifiers.
+- Classification counts, including missing and out-of-scope categories.
+- Missing, invalid, zero, and observed capitalization values; observed denominators and distributions.
+- Daily coverage and missing or invalid price/volume inputs.
+
+Convert documented capitalization in USD thousands to USD millions using `mthcap / 1000`. This is capitalization of the security/share class. Two PERMNOs can share a PERMCO; do not discard one just because the company identifier repeats. Missing company identity should be reported, without silently imposing a new eligibility rule.
+
+Keep missing classification or financial values visible until their stated exclusion gate. Structural errors such as duplicate security/date keys stop the workflow for diagnosis. Choose one plot, explain the distribution, and identify one exact observation you checked independently.
+
+# 3. Document the liquidity measure
+
+Use a **daily price-volume proxy**, built from the documented CRSP fields delivered through WRDS:
+
+\[
+\text{dollar-volume proxy}_{i,d}
+= \texttt{dlyprc}_{i,d}\times\texttt{dlyvol}_{i,d}.
+\]
+
+Price is USD per share and volume is raw shares traded per day. Their product is USD per day. This follows the vendor's price-volume construction; it approximates trading activity and is not the sum of transaction prices multiplied by transaction sizes. Label it as a proxy throughout your report.
+
+For this assignment, average that proxy over valid observations in the **same 20 source sessions** for every security, and divide by 1,000,000 to report USD millions/day. A usable average requires **at least 15 valid observations**. The implementation names this `adv20_m` and also reports the actual denominator. A 15-observation mean must not be described as a mean across 20 observed values.
+
+A day is valid when price is finite and positive and volume is finite and nonnegative. Observed zero volume contributes zero. Missing rows, missing inputs, and invalid values do not become zero. When fewer than 15 valid days remain, report insufficient coverage and leave `adv20_m` undefined. Do not substitute each security's most recent 20 available rows; that would change the window across securities.
+
+The **20-session window, 15-observation minimum, and $1 million/day default threshold are classroom choices**, not WRDS eligibility standards. Explain their financial purpose and limitations. This measure describes trading activity; it does not establish the bid-ask spread, execution cost, or capacity for a particular order.
+
+# 4. State the rules before running the screen
+
+Use the following ordered rules. Record your prediction and pseudocode in `REPORT_TEMPLATE.html` before running `screen.R`.
+
+| Gate | Baseline universe | Final universe |
+|---|---|---|
+| Ordinary U.S. corporate common shares | `NS`, `EQTY`, `COM`, U.S. incorporation `Y`, issuer `ACOR` or `CORP` | Same |
+| Primary exchange | `N`, `A`, or `Q` | Same |
+| Trading status | Regular-way `RW` and active `A` | Same |
+| Capitalization quality | Observed, finite, nonnegative | Same |
+| Size | At least 1,000 USD millions | Same |
+| Daily coverage | Report it; no coverage gate | At least 15 valid days in the common window |
+| Liquidity proxy | Report it; no liquidity gate | `adv20_m` at least 1 USD million/day |
+
+These classification codes retain the ordinary-common-stock scope from Part 1. Other types stay in the broad download and receive an explicit exclusion reason. Consult the source note for the code mapping.
+
+Keep the Part 1 capitalization threshold fixed for the required comparison. You may choose a different positive liquidity threshold if you state it and its rationale **before** viewing the selected results; record the exact value in the configuration and report. Keep the source date, population, units, and coverage policy unchanged. An optional rerun at $2 million/day can isolate threshold sensitivity after the initial comparison.
+
+Assign each excluded security its **first failed gate** in the stated order for the funnel. Also retain all applicable failure reasons in the row audit. A missing value fails its quality/coverage rule; it should not also be mislabeled as an observed value below a threshold.
+
+**Your pseudocode must explain:** how you preserve raw rows, calculate the liquidity inputs, join them back, apply the two definitions, and reconcile exclusions. Explain at least one helper function in your own words. Running supplied code alone does not supply that evidence.
+
+# 5. Validate the join and the selected universe
+
+Aggregate daily records to one liquidity summary per security at the assigned snapshot. Left-join that summary to the full monthly table. Validate unique right-side keys, unchanged left keys and order, row-count preservation, and unmatched coverage. This supplies the project's required validated join. A separate company-fundamentals or industry join is optional; it requires its own dated link and audit.
+
+Before accepting the results:
+
+1. Hand-calculate the daily proxy and average for one security, with units and valid-day denominator.
+2. Independently classify one included security and one excluded security using their source records. Explain the first failure and any other failures.
+3. Check exact threshold equality using actual records where available, or a clearly labeled invented boundary case. Equality passes.
+4. Verify `starting securities = selected securities + first-failure exclusions` for each definition.
+5. Confirm final-universe membership is a subset of baseline membership and the output security/date key is unique.
+
+If a real-data case is absent, say so and use an invented test to check that branch. A synthetic result is not evidence that a real security passed a rule.
+
+# 6. Compare and defend your choice
+
+Complete a table for the broad input, baseline, and final universe showing:
+
+- Securities, distinct known companies, and missing company IDs.
+- Median security capitalization and its observed denominator.
+- Median usable liquidity proxy and its observed denominator.
+- Securities lacking adequate daily coverage.
+
+Describe which gates remove the most securities and which observations explain a change in your distributions. The baseline-to-final change includes both the coverage requirement and the liquidity threshold; distinguish those effects using the funnel. A higher liquidity threshold does not guarantee that median capitalization rises or that a particular number of names survives.
+
+Write a short financial memo explaining why the final set serves your research question, how sensitive it is to the chosen rule, and what remains excluded or uncertain. The selected snapshot is a **research universe**, not a demonstrated profitable strategy. These end-of-period inputs cannot establish returns that were investable earlier in the same period.
+
+Finish with a short historical-extension plan: security/date panel key, formation frequency, when each input would be available, entry/exit treatment, and a first small query. A completed historical panel or backtest is optional. Add the question, supporting evidence, limitations, and next check to your final-project evidence notebook.
+
+# Final submission
+
+Submit the following through the Canvas-designated route, following its data permissions:
+
+| Deliverable | Required contents |
+|---|---|
+| Financial memo / completed report | Question, rules, pseudocode, comparison, interpretation, limitations, historical plan |
+| `final_universe.csv` | Dated selected securities, company IDs where known, cap, liquidity proxy, and coverage |
+| `all_security_audit.csv` | One row for every starting security, membership under both definitions, and exclusion reasons |
+| `exclusion_funnel.csv` | Ordered, reconciling exclusion counts for both definitions |
+| Comparison and EDA evidence | `comparison.csv`, one explained figure, `eda.csv`, and classification/missingness discussion |
+| Join and independent checks | `join_audit.csv`, `unmatched_daily.csv`, and your manual calculations |
+| Reproducible code and configuration | R scripts, exact configuration, run instructions, and dependency/session record |
+| Data/source note | Product/release, documented field meanings/units, exact queries, dates, counts, download time, and access status |
+| Individual process evidence | Own logic and checked result, contribution, AI Use / Process Statement, and evidence-notebook update |
+
+Raw licensed downloads and any restricted derived files remain outside the code repository. Submit or make them available only through the instructor-designated permitted route; a private Git repository is not automatic permission to upload them. Include the code, configuration, and reproduction instructions so the analysis can rerun from the authorized saved inputs without requiring a fresh query at grading time.
+
+**Completion standard:** Another reader can explain your rules, account for every input security, reproduce the selected list, and verify your financial comparison. No target universe size or new grading weights are imposed.
+
+# Access fallback and references
+
+Use `synthetic` mode to develop and check code while WRDS access is unresolved. Its fixture is **FIN494-project1-synthetic-v1**, separate from the earlier labs. Label all synthetic outputs. The target remains an authorized broad download; completing the synthetic run alone does not demonstrate that download. Record any access blocker and use the instructor-approved permitted-extract or alternative completion route.
+
+- [WRDS CRSP CIZ-to-SIZ reference](https://wrds-www.wharton.upenn.edu/pages/wrds-research/macros/crsp-ciztosiz-macro/): CIZ views, fields, and classification mappings. The starter retains CIZ names.
+- [WRDS CRSP annual-stock dictionary](https://wrds-www.wharton.upenn.edu/data-dictionary/crsp_a_stock/): confirm the subscribed tables and definitions while signed in.
+- [CRSP CIZ stock-data guide](https://indexes.morningstar.com/docs/guide/crsp-us-stock-databases-guide-for-flat-file-format-2-0?isRdp=true): capitalization, daily price, volume, and price-volume definitions.
+
+See the starter's `DATA_SPECIFICATION.html` for the complete operational specification and documentation limits.

@@ -1,0 +1,90 @@
+---
+title: "Project 1 R Starter — Start Here"
+output: html_document
+---
+
+# Your workflow
+
+Open the extracted `FIN494-Project1-Student` folder. Read `FIN494_Project1_Assignment.html` and `DATA_SPECIFICATION.html`. Start your own report from `REPORT_TEMPLATE.Rmd`. Use R throughout; the synthetic route uses base R. Live retrieval additionally uses the preconfigured `DBI` and `RPostgres` packages.
+
+This is **FIN494-project1-v1**. The new broad retrieval replaces the Class 05 query for completion of Project 1. Keep earlier work as evidence; do not mix its already-filtered inputs or Class 06 helper names with this starter.
+
+# 1. Develop with invented data
+
+Run these commands in your ordinary terminal from the extracted starter root:
+
+```sh
+Rscript analysis/retrieve.R synthetic
+```
+
+This creates a clearly labeled invented broad snapshot and daily records. It makes no network connection. Inspect the generator in `analysis/fixture.R`. Write your own screening rules, pseudocode, membership predictions, and independent arithmetic before running:
+
+```sh
+Rscript analysis/screen.R synthetic
+```
+
+Outputs are under `output/synthetic/`. Open the CSVs and figure locally, reconcile the funnel, and explain discrepancies with your prediction. The fixture exercises multiple share classes, excluded instrument types, missing classifications, invalid/missing inputs, an unmatched daily record, exact boundaries, and insufficient history. It provides no real-market findings.
+
+# 2. Prepare the documented WRDS route
+
+With the instructor, verify both CIZ views, the fields in `DATA_SPECIFICATION.html`, units, release and date coverage, and permitted use. Configure your authorized WRDS connection through the existing private libpq service or institution-approved authentication; never put a password in code.
+
+Set `FIN494_PROJECT1_DATA_DIR` in the terminal to an **existing private local folder outside both this project and its enclosing Git repository, and outside the entire AI workspace**. All live inputs and outputs go there. This is a separate variable from the old Class 05 data directory so its files are not overwritten. Example after you create and confirm that folder:
+
+```sh
+# macOS/Linux — replace with your confirmed private directory
+export FIN494_PROJECT1_DATA_DIR='/absolute/path/to/private/project1'
+```
+
+```powershell
+# Windows PowerShell — replace with your confirmed private directory
+$env:FIN494_PROJECT1_DATA_DIR = 'C:\private\project1'
+```
+
+The instructor-led check is:
+
+```sh
+Rscript analysis/retrieve.R preflight
+```
+
+This verifies accessible fields, nonempty monthly coverage, and window dates using your account. Inspect the private `preflight_metadata.txt`. The local receipt does not certify units or permissions. After the documentation review, record the subscribed `source_release` in `config/project_config.R`, set `documentation_confirmed = TRUE`, and run preflight again so its receipt matches the final extraction specification.
+
+# 3. Download the broad inputs
+
+```sh
+Rscript analysis/retrieve.R live
+```
+
+Inspect the private `query_metadata.txt` and saved `input.rds` locally. Confirm a date-only monthly query, agreement between server and download counts, unique keys, and the common 20-session window. No security selection happens in this step. Do not paste licensed rows or private terminal output into AI prompts.
+
+If a schema/date/access check fails, keep the failure record and contact the instructor. Continue code development in synthetic mode; a fallback is labeled synthetic until a permitted completion route is agreed. Do not silently change product or enable the documentation flag to bypass a failed check.
+
+# 4. Screen, verify, and interpret
+
+Save your own prediction, pseudocode, and chosen liquidity threshold before executing:
+
+```sh
+Rscript analysis/screen.R live
+```
+
+The screen uses the authorized saved inputs. It makes no fresh database connection. Check the all-security audit, ordered exclusion counts, joined keys, selected lists, comparison and plot. Add your manual checks and financial interpretation to the report. Retain actual denominators when reporting the liquidity mean.
+
+Configuration changes to the source/date/window/units/release require a new matching extract. A documented change to a screening threshold can reuse the same extract. Save each comparison you need before rerunning because the analysis exports in that mode's output folder are replaced.
+
+# Files to understand
+
+| File | Purpose |
+|---|---|
+| `config/project_config.R` | Date, source, units, lookback, thresholds, documentation status |
+| `analysis/retrieve.R` | Retrieve broad inputs or create the labeled development fixture |
+| `analysis/retrieval_helpers.R` | Query construction, access checks, metadata and output locations |
+| `analysis/fixture.R` | Invented development inputs; no real WRDS observations |
+| `analysis/universe_helpers.R` | Validate, aggregate liquidity, join, screen, and summarize |
+| `analysis/screen.R` | Run the saved-input analysis and export evidence |
+| `REPORT_TEMPLATE.Rmd` | Your reasoning and submission record |
+
+Code comments and successful checks help you inspect the workflow; neither substitutes for your own financial explanation. No instructor answer key is included.
+
+# Submission and AI use
+
+Follow the full assignment and Canvas. Keep source data, restricted results, credential files, and `.git` out of the student submission/code ZIP unless the instructor's separate permitted-data instructions authorize the relevant files. `.gitignore` and `.cursorignore` are safeguards, not permission to put licensed records inside an AI workspace. Run data analysis locally; use schemas and invented examples for AI assistance. Record what AI changed and what you verified.

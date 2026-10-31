@@ -1,0 +1,19 @@
+# Defense in depth only: terminal/MCP tools can still access ignored files.
+# Keep credentials/licensed extracts OUTSIDE this workspace and forbid agent reads.
+.git/
+output/
+outputs/
+data-private/
+private-data/
+wrds-data/
+.env
+.env.*
+.Renviron
+.pgpass
+pgpass.conf
+.pg_service.conf
+credentials*
+*.rds
+*.RData
+*.Rhistory
+.Rproj.user/

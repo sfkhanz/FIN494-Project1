@@ -1,0 +1,65 @@
+---
+title: "Project 1 — Data and Liquidity Specification"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+# Scope and source
+
+The prepared source is CRSP CIZ via WRDS: `crsp.msf_v2` for the full monthly snapshot and `crsp.dsf_v2` for daily inputs. This continues the Class 05 candidate mapping. The institution's subscribed product and the student's entitlement must be confirmed; the repository does not establish authenticated access.
+
+The monthly date is **2025-12-31**. The SQL monthly filter contains that date only. All security types, exchanges, trading statuses, missing classifications, and missing capitalization values returned by the source remain in the raw snapshot. No ticker list, `LIMIT`, market-capitalization condition, or common-stock condition is applied on the server. “All” refers to source coverage at that date, not all world securities or all historical records.
+
+Independent server counts accompany the monthly and daily retrieval in one read-only, repeatable-read transaction. The saved `input.rds` preserves both raw tables, the common session dates, and source metadata. `query_metadata.txt` records the executed queries. Do not edit or replace licensed raw inputs with synthetic rows.
+
+# Documentation and field mapping
+
+[WRDS's CIZ-to-SIZ reference](https://wrds-www.wharton.upenn.edu/pages/wrds-research/macros/crsp-ciztosiz-macro/) identifies the monthly and daily views, frequency-specific date/price/volume fields, and security classifications. We use CIZ names directly. The [WRDS annual-stock dictionary](https://wrds-www.wharton.upenn.edu/data-dictionary/crsp_a_stock/) and the signed-in dictionary for your subscribed release must confirm the accessible tables and units.
+
+The provider's [CRSP CIZ guide](https://indexes.morningstar.com/docs/guide/crsp-us-stock-databases-guide-for-flat-file-format-2-0?isRdp=true), effective July 31, 2026, documents the definitions. Printed pages 17–18 explain daily price, volume, and price-volume. Public documentation was checked September 30, 2026; no authenticated query was performed while preparing the starter.
+
+| Field | Meaning / treatment |
+|---|---|
+| `permno` | Permanent security identifier; monthly and daily key component |
+| `permco` | Company identifier; multiple securities can share it; report unknown companies |
+| `mthcaldt` | Monthly observation's calendar date; snapshot key with PERMNO |
+| `mthcap` | Security capitalization in USD thousands; divide by 1,000 for USD millions |
+| Eight classification fields | Instrument, issuer, incorporation, primary exchange, and trading status; retain raw codes |
+| `dlycaldt` | Daily observation date; daily key with PERMNO |
+| `dlyprc` | Daily price in USD/share; can use a bid/ask-average fallback when a trade price is unavailable |
+| `dlyvol` | Raw daily shares traded; do not multiply by the shares-outstanding scaling factor |
+
+The provider defines `DlyPrcVol` as daily price times volume. This is a **proxy** for dollars traded, not an aggregation of individual transactions. The starter calculates the same product transparently from `dlyprc` and `dlyvol`; it does not assume the optional `dlyprcvol` field is exposed in your WRDS view. CIZ price flags and legacy signed-price conventions differ: do not apply a legacy `abs(prc)` recipe to unexpected negative CIZ values without checking the source.
+
+# Course liquidity policy
+
+The classroom measure is **average daily price-volume proxy in USD millions/day**, named `adv20_m`:
+
+1. Query distinct daily source dates from 2025-11-01 through 2025-12-31, and use the last 20. Retain those dates in the extract. If fewer than 20 exist, stop and resolve coverage.
+2. Fetch daily rows for all securities in the broad monthly snapshot over that shared window. This is a cohort restriction for the inputs, not a cap/type/liquidity screen.
+3. Require finite positive price and finite nonnegative volume for a valid daily product. A zero observed volume is a valid zero product. Missing or invalid observations are not zero.
+4. Average valid daily products and divide by 1,000,000. Require at least 15 valid observations for a usable `adv20_m` and report the actual count.
+5. The default final-universe threshold is `adv20_m >= 1`, alongside the unchanged capitalization threshold of 1,000 USD millions.
+
+The **window, minimum count, and threshold are explicit course choices**, not rules prescribed by WRDS or CRSP. The 20 dates are inferred from the accessible full daily table's date coverage; inspect them during preflight rather than assuming a truncated source is a complete market calendar. Do not substitute a fixed number of calendar days, or each security's last 20 nonmissing observations. Daily source dates are common to all securities, including securities with no matching daily records.
+
+This screen measures trading activity. The use of a closing price or midpoint proxy, a short sample, variation in daily activity, and incomplete histories all limit conclusions about actual transaction costs and capacity. A new listing can fail the coverage rule despite high recent volume. Identify that as a coverage exclusion in your funnel.
+
+# Local classification and baseline
+
+Retain the Part 1 ordinary U.S. corporate common-equity definition locally:
+
+- `sharetype == 'NS'`, `securitytype == 'EQTY'`, `securitysubtype == 'COM'`, `usincflg == 'Y'`, and `issuertype` in `ACOR`, `CORP`.
+- `primaryexch` in `N`, `A`, `Q` (NYSE, NYSE American, Nasdaq).
+- `conditionaltype == 'RW'` and `tradingstatusflg == 'A'`.
+- Capitalization observed, finite, nonnegative, then `cap_m >= 1000`.
+
+The final universe adds adequate daily coverage and the configured liquidity threshold. Retain missing and failing records in the audit. Missing PERMCO is a reporting limitation, not an additional unannounced gate. A missing daily lookup remains visible and fails only the final universe's coverage gate. Baseline membership does not require daily observations.
+
+# Timing and permissible claims
+
+The snapshot and liquidity window end on or before 2025-12-31. Download time is later. A field's observation date alone does not prove it was available to an investor at that moment, and the current database release may incorporate corrections. The required result is descriptive. A historical investment test requires an explicit availability rule, later execution/holding interval, contemporaneous membership, and entry/exit coverage.
+
+A permitted saved extract is sufficient to rerun the analysis at grading time. Preserve product/release, exact query, units, retrieval counts and time. Do not claim that public schema documentation certifies your account's entitlement, source completeness, or data redistribution permission.

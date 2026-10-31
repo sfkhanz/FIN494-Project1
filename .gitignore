@@ -1,0 +1,17 @@
+# Generated classroom output and any accidental private-data locations.
+output/
+outputs/
+data-private/
+private-data/
+wrds-data/
+.env
+.env.*
+.Renviron
+.pgpass
+pgpass.conf
+.pg_service.conf
+credentials*
+*.rds
+*.RData
+*.Rhistory
+.Rproj.user/
