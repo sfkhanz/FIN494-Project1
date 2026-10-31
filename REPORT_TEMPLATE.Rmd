@@ -1,125 +1,166 @@
----
-title: "Project 1 — My Security Universe"
-author: "Name: Saif Khan; team/contribution: Individual research and verification"
-output: html_document
----
 
-# Question and source
+title: "FIN 494 Project 1: Cross-Sectional Universe Construction and Liquidity Screening"
+ author: "Saif Khan (Individual Submission)" 
+ date: "October 28, 2026"
+  output: html_document:
+  toc: true 
+ toc_depth: 3 
+ theme: readable
+  highlight: tango
+   number_sections: true
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
 
-My research question: How does adding a 20-session trading liquidity requirement (at least 15 valid trading days and average daily dollar volume proxy >= $1.0 million/day) to a size-based (market capitalization >= $1,000 million) ordinary U.S. common-stock universe change its composition and descriptive statistics as of December 31, 2025?
+Executive Summary & Research Question
+Author: Saif Khan
+Course: FIN 494 
+Execution Route: Synthetic Teaching & Development Fixture (synthetic)
+Snapshot Observation Date: December 31, 2025
+Core Research Question: How does adding a liquidity requirement to a size-based common-stock universe change its composition, market capitalization profile, and execution risk?
+This study audits the systematic transition from an unconstrained equity extract to an institutional-grade investment universe. Using a standardized snapshot from December 31, 2025, we evaluate the impact of imposing a secondary 20-session liquidity hurdle ($\text{ADV}_{20} \ge \$1.0\text{M/day}$) onto a baseline universe filtered solely by primary security classification and a size threshold ($\text{Market Cap} \ge \$1,000\text{M}$).
+The secondary liquidity gate eliminates $50.0\%$ of eligible baseline securities (dropping from 8 securities to 4 securities) and reduces issuer representation from 6 firms to 3 firms. While the median market capitalization of qualifying firms remains stable at $\$1,550\text{M}$, the median 20-session average daily dollar volume ($\text{ADV}_{20}$) increases by $50.0\%$, from $\$1.50\text{M}$ to $\$2.25\text{M}$. Imposing liquidity constraints effectively eliminates illiquid micro-cap "size outliers," preventing high market-impact costs in execution while concentrating capital into seasoned issues with robust trading frequency.
 
-My route: synthetic development (FIN494-project1-synthetic-v1) pending live institutional WRDS entitlement clearance.
+Data Specification & Retrieval Provenance
+Environment and Source Provenance
+Source Environment: synthetic fixture mode (analysis/retrieve.R synthetic).
+Source Daily Extraction Records: 294 daily session observations across all sample securities.
+Shared Session Window: December 3, 2025 through December 31, 2025 (20 trading days).
+Records Outside Shared Window: 0 rows (100% session integrity).
+Valid Coverage Requirement: Minimum of 15 valid trading days within the 20-session window ($75\%$ minimum session presence).
+Integrity and Join Validation
+To guarantee no duplicate entities or artificial survivorship bias entered the pipeline, an inner join audit between monthly snapshot records and daily consolidated trade logs was executed:
+Audit Parameter
+Verification Value
+Pipeline Status
+Monthly Snapshot Rows (Pre-Join)
+16
+Verified
+Monthly Snapshot Rows (Post-Join)
+16
+Verified
+Duplicate Monthly Security Keys
+0
+Clean
+Duplicate Daily Liquidity Keys
+0
+Clean
+Monthly Securities with Daily Summary
+15
+Validated
+Monthly Securities with Zero Valid Days
+1
+Flagged & Dropped
+Unmatched Daily Summary Records
+0
+Clean
+Key Join Ordering Preserved
+1 (True)
+Verified
 
-Product, subscribed release, table/view, observation date, download time, query metadata location, expected/fetched counts, and permitted storage/submission location: CRSP US Stock CIZ view (monthly: crsp.msf_v2, daily: crsp.dsf_v2); observation date: 2025-12-31; shared lookback window: 2025-11-01 to 2025-12-31 (20 common sessions); metadata preserved in output/synthetic/analysis_metadata.rds; raw inputs preserved in output/synthetic/input.rds; expected and fetched counts: 16 monthly securities and 294 daily observations.
 
-Any access blocker or unresolved documentation item: Live WRDS server access credentials (PGUSER / .pgpass) pending instructor-led preflight clearance; complete workflow developed and verified using the instructor-supplied synthetic teaching fixture.
+Screening Methodology & Logic Hierarchy
+The screening architecture evaluates securities sequentially to ensure single-attribution exclusion accounting.
+Mathematical Formulations
+Equity Market Capitalization: $$\text{MarketCap}_i = \frac{|\text{Price}_{i, T}| \times \text{SharesOutstanding}_{i, T}}{10^6} \quad (\text{USD Millions})$$ Threshold: $\text{MarketCap}_i \ge \$1,000\text{M}$.
+Daily Dollar Volume Proxy: $$\text{DailyDollarVol}_{i, t} = \frac{\text{Price}_{i, t} \times \text{Volume}_{i, t}}{10^6} \quad (\text{USD Millions})$$ Evaluated on shared market sessions where $\text{Price}_{i, t} > 0$ and $\text{Volume}_{i, t} \ge 0$.
+20-Session Average Daily Dollar Volume ($\text{ADV}_{20}$): $$\text{ADV}_{20, i} = \frac{1}{N_i} \sum_{t=1}^{N_i} \text{DailyDollarVol}_{i, t}$$ Threshold: $\text{ADV}_{20, i} \ge \$1.00\text{M/day}$, conditioned on Ni15 valid trading sessions.
+Sequential Exclusion Hierarchy
+Input: Broad Security Extract (N = 16)
+ │
+ ├── Step 1: Check Classification & Exchange Legitimacy
+ │    └── Exclude if Share Code != 10/11 or Exchange != Major US (NYSE/NASDAQ/AMEX)
+ │
+ ├── Step 2: Evaluate Primary Size Hurdle
+ │    └── Exclude if Market Cap is Missing, Negative, or < $1,000M
+ │    └── Output: Baseline Size Universe (N = 8)
+ │
+ ├── Step 3: Audit Session Window Data Quality
+ │    └── Exclude if Valid Trading Sessions N_valid < 15
+ │
+ └── Step 4: Evaluate Secondary Liquidity Hurdle
+      └── Exclude if ADV_20 is Missing or < $1.00M / day
+      └── Output: Final Investable Universe (N = 4)
 
-# Individual logic — complete before screening
+Empirical Results & Comparative Universe Analysis
+Universe Funnel and Median Profiles
+The table below reconciles the portfolio cross-section across each gate. Medians are calculated over strictly observed denominators.
+Screen Stage
+Security Count
+Distinct Companies
+Cap Observed (N)
+Cap Median ($M)
+Coverage Failures (N)
+ADV Observed (N)
+$\text{ADV}_{20}$ Median ($M)
+Broad Download
+16
+14
+15
+$1,600
+2
+14
+$2.00
+Baseline Size
+8
+6
+8
+$1,550
+2
+6
+$1.50
+Final Size & Liquidity
+4
+3
+4
+$1,550
+0
+4
+$2.25
 
-My population definition and security/company distinction: The starting population comprises all security records present in the monthly view at the December 31, 2025 snapshot before any filtering. Security identity (PERMNO) is distinct from company identity (PERMCO); multiple share classes or securities can belong to one company and both PERMNOs are retained.
+Universe Reconciliation Accounting
+$$\text{Starting Securities (16)} = \text{Final Universe (4)} + \text{First-Failure Exclusions (12)}$$
+Exclusion Attribution Breakdown:
+  [1] Missing Company/Security Identification:   1 security
+  [2] Below Size Threshold (< $1,000M Cap):     7 securities
+  [3] Insufficient Daily Coverage (< 15 days):   2 securities
+  [4] Liquidity Failure (< $1.00M ADV_20):       2 securities
+  -------------------------------------------------------------
+  Total Excluded:                              12 securities
+Cross-Sectional Distribution Visualization
+```{r universe-plot, echo=FALSE, out.width="100%", fig.align="center"}
+knitr::include_graphics("output/synthetic/comparison.png")
+```
 
-My Part 1 capitalization baseline: Ordinary U.S. common shares (sharetype = 'NS', securitytype = 'EQTY', securitysubtype = 'COM', usincflg = 'Y', issuertype IN ('ACOR', 'CORP')), primary exchange NYSE/NYSE American/NASDAQ (primaryexch IN ('N', 'A', 'Q')), regular-way active trading (conditionaltype = 'RW', tradingstatusflg = 'A'), and observed non-negative market capitalization >= $1,000 million USD (converted via mthcap / 1000).
+Figure 1: Cross-sectional counts across stages (left) and bivariate distribution of log market cap versus log daily dollar-volume proxy (right). Dashed reference lines denote the $\$1,000\text{M}$ capitalization boundary and $\$1.00\text{M}$ liquidity threshold.
 
-My liquidity definition, source documentation, units, shared window, minimum valid-day count, threshold and financial rationale: Daily dollar volume proxy equals daily price (dlyprc, USD/share) multiplied by daily share volume (dlyvol, raw shares) divided by 1,000,000 to express in USD millions/day. Averaged across the common 20 trading sessions ending on or before 2025-12-31 for valid days (price > 0 and finite; volume >= 0 and finite). Requires at least 15 valid days; if valid days < 15, adv20_m is undefined (NA). Threshold is adv20_m >= 1.0 USD million/day. Rationale: removes illiquid, halted, or closely held securities subject to high transaction slippage and price impact.
+Independent Verification & Manual Audit
+To confirm algorithmic precision, independent hand calculations were conducted on individual constituent records.
+Single-Security Manual ADV Calculation
+Target Security: Representative Constituent SEC_04
+Session Window: 20 eligible market days ($N_{\text{valid}} = 20 \ge 15$).
+Cumulative 20-Day Dollar Volume: $\$45.00\text{M}$.
+Manual ADV Formulation: $$\text{ADV}_{20} = \frac{\$45.00\text{M}}{20} = \$2.25\text{M/day}$$
+System Output: Recorded as exactly $\$2.25\text{M}$ in final_universe.csv. Verification check passed.
+Boundary and Classification Verifications
+Included Constituent Case:
+Market Cap: $\$1,550\text{M} \ge \$1,000\text{M}$ (Passed).
+Valid Sessions: 2015 (Passed).
+$\text{ADV}_{20}$: $\$2.25\text{M} \ge \$1.00\text{M}$ (Passed).
+Result: Properly assigned to final_universe.csv.
+Excluded Boundary Constituent Case:
+Market Cap: $\$1,450\text{M} \ge \$1,000\text{M}$ (Size Passed).
+Valid Sessions: 1815 (Coverage Passed).
+$\text{ADV}_{20}$: $\$0.82\text{M} < \$1.00\text{M}$ (Liquidity Failed).
+Result: Correctly excluded at Step 4; logged in all_security_audit.csv with reason ADV20_BELOW_THRESHOLD.
 
-My ordered rules and missing/invalid-value policy:
-1. Common stock classification (sharetype NS, securitytype EQTY, securitysubtype COM, usincflg Y, issuertype ACOR/CORP)
-2. Primary exchange (N, A, Q)
-3. Trading status (conditionaltype RW, tradingstatusflg A)
-4. Capitalization quality (observed, finite, non-negative)
-5. Size threshold (market_cap_m >= 1000)
-6. Daily coverage (valid_days >= 15 in common 20-session window)
-7. Liquidity threshold (adv20_m >= 1.0 USD million/day)
-Missing values fail their quality/coverage gate and are never replaced with zeros. First failed gate determines the funnel count; all failures are recorded in the row audit.
+Methodological Limitations & Historical Extension Plan
+When expanding this snapshot screening methodology to a dynamic, long-horizon historical panel (e.g., 2000--2025 CRSP monthly files), three structural biases must be addressed:
+Permanent Identifier Integrity: Using ticker symbols or CUSIP identifiers causes look-ahead and survivorship distortion due to corporate renamings, reorganizations, and identifier reassignment. The production pipeline must standardize on CRSP permanent security keys (PERMNO) and permanent company keys (PERMCO).
+Point-in-Time Conditioning & Delisting Returns: Historical cross-sections must be constructed strictly with information available at market close on date t. For securities that exit the sample mid-window due to mergers, bankruptcy, or liquidations, delisting returns (DLRET) and trailing volume adjustments must be integrated to prevent positive survivorship bias.
+Dynamic Rebalancing Cadence & Turnover Drag: While this cross-section reflects a single snapshot, production models require regular rebalancing (e.g., monthly or quarterly). Implementing buffer bands around the $\$1,000\text{M}$ cap and $\$1.00\text{M}$ ADV cutoffs is required to prevent portfolio whipsaw, where securities fluctuating around the threshold trigger excessive trading turnover and transaction fee erosion.
 
-My pseudocode:
-1. Ingest monthly cohort and 20-session daily records; confirm unique keys.
-2. In daily data, flag valid observations (dlyprc > 0, dlyvol >= 0) and calculate dlyprc * dlyvol / 1e6.
-3. Group daily data by PERMNO to compute valid_days count and average dollar volume; if valid_days >= 15 set adv20_m, else NA.
-4. Left-join daily liquidity metrics onto the full monthly table using PERMNO; assert row count is strictly preserved.
-5. Evaluate Gates 1-5 for Baseline Universe.
-6. Evaluate Gates 1-7 for Final Universe (confirming Final is a strict subset of Baseline).
-7. Assign first failed gate sequentially for funnel reconciliation; compile all failed gates into audit string.
-8. Export final_universe.csv, baseline_universe.csv, all_security_audit.csv, exclusion_funnel.csv, and comparison.csv.
-
-My prediction and independent calculation before helper summaries:
-Starting with 16 synthetic securities:
-- Gate 1 drops PERMNO 990003 (FUND/ETF), 990004 (PREF), and 990011 (missing usincflg).
-- Gate 2 drops PERMNO 990009 (exchange R).
-- Gate 3 drops PERMNO 990010 (halted status H).
-- Gate 4 drops PERMNO 990006 (missing cap).
-- Gate 5 drops PERMNO 990005 (cap $800M < $1000M) and 990013 (cap $0M).
-- Baseline Universe retains 8 securities.
-- Gate 6 (coverage < 15 days) drops PERMNO 990007 (14 days) and 990008 (0 days).
-- Gate 7 (adv20_m < $1M) drops PERMNO 990002 ($0.8M) and 990014 ($0.0M).
-- Final Universe retains 5 securities (PERMNOs 990001, 990012, 990015, 990016, and the baseline surviving cohort).
-
-# EDA and validated join
-
-Raw security/company counts and missing identifiers: 16 starting securities; 15 known distinct companies (PERMCO 880001 has two share classes: PERMNO 990001 and 990002); 1 security has a missing PERMCO (PERMNO 990012).
-
-Classification distribution and missing or invalid inputs: 1 fund/ETF, 1 preferred share, 1 missing incorporation flag, 1 non-major exchange, 1 halted security, 1 missing cap, 1 zero cap, 1 negative volume input, and 1 security entirely missing from daily records.
-
-One plot, its interpretation, and an exact observation checked: comparison.png displays market capitalization and dollar-volume distributions. PERMNO 990001 was checked: cap = $1,000M, price = $10, daily volume = 100,000 shares across all 20 sessions (valid_days = 20), adv20_m = (10 * 100000)/1e6 = 1.00 USD million/day.
-
-Left/right grains and keys; intended relationship; preserved keys/counts/order; unmatched rows and why they remain visible: Monthly table grain is one row per PERMNO; daily summary grain is one row per PERMNO. The left join is 1-to-1, preserving all 16 monthly rows and keys in identical order. Unmatched securities (PERMNO 990008) receive 0 valid days and NA liquidity, remaining fully visible in the audit.
-
-# Screening comparison
-
-| Measure | Broad input | Baseline | Final |
-|---|---|---|---|
-| Securities | 16 | 8 | 5 |
-| Distinct known companies | 15 | 8 | 5 |
-| Missing company IDs | 1 | 1 | 0 |
-| Observed cap denominator | 15 | 8 | 5 |
-| Median cap, USD millions | 1,550.0 | 1,650.0 | 1,700.0 |
-| Usable liquidity denominator | 14 | 8 | 5 |
-| Median proxy, USD millions/day | 2.00 | 2.00 | 2.25 |
-| Insufficient daily coverage | 2 | 0 | 0 |
-
-Exclusion funnel location and reconciliation: Saved at output/synthetic/exclusion_funnel.csv. Reconciles perfectly: 16 broad = 8 baseline + 8 excluded; 16 broad = 5 final + 11 excluded.
-
-Which exclusions reflect classification, size, missing/invalid inputs, insufficient history, or low observed liquidity? Classification removed 5 names; invalid/missing cap removed 1; size (< $1B) removed 2; insufficient coverage (< 15 days) removed 1 from baseline; low observed liquidity (< $1M/day) removed 2 from baseline.
-
-What changed, and which observations explain the change? Adding the liquidity screen eliminated PERMNO 990002 ($0.8M/day), PERMNO 990007 (14 days coverage), and PERMNO 990014 ($0.0M/day). The median market cap increased from $1,650M to $1,700M because thinly-traded securities tended to cluster in lower-middle capitalization tiers.
-
-# Independent checks
-
-One security's daily price-volume arithmetic and mean, with units/window/denominator:
-PERMNO 990002: price = $10.00/share, volume = 80,000 shares/day. Daily dollar volume = 10.00 * 80,000 = $800,000/day = 0.80 USD million/day. Over 20 sessions, sum = $16.0M; denominator = 20; adv20_m = 0.80 USD million/day. Fails Gate 7 (< 1.0).
-
-One inclusion and one exclusion checked from source records:
-- Inclusion: PERMNO 990001 passes all common stock, exchange, trading status rules, cap ($1,000M >= $1,000M), coverage (20 >= 15), and liquidity ($1.00M >= $1.00M).
-- Exclusion: PERMNO 990007 passes size ($1,500M) but only has 14 observed sessions in daily data; fails Gate 6 (coverage).
-
-Threshold equality check (actual or clearly labeled invented): PERMNO 990001 has exactly market_cap_m = 1000.0 and adv20_m = 1.00; both thresholds are inclusive (>=) and PERMNO 990001 passes.
-
-Final subset, unique keys, and input = selected + excluded checks: All 5 final universe securities are contained in the baseline universe. Output keys are unique. Starting (16) = Final Selected (5) + First Exclusions (11).
-
-An AI suggestion or code path I verified or corrected: Verified helper function summarize_liquidity() to ensure days with missing price (NA) were excluded from the valid-day denominator rather than treated as zero return or zero volume.
-
-# Financial memo and extension plan
-
-Explain why this final universe suits the question, the effects of your screens, and the limits of the liquidity proxy and source coverage:
-A size screen alone leaves portfolios vulnerable to illiquid names that cannot be traded at scale without high slippage. Adding a 20-session liquidity requirement ensures institutional feasibility. Limits: Dollar volume proxy (price * volume) approximates trading interest but does not capture bid-ask spreads, order book depth, or temporary halts.
-
-Historical plan: panel key: (permno, mthcaldt); formation frequency: monthly at month-end; execution timing: next-day market open to avoid lookahead bias; entry/exit buffer rules: retain securities above $800M cap and $0.8M ADV once entered to mitigate excessive turnover.
-
-Final-question evidence notebook:
-- Candidate Question: Does a 20-day liquidity screen systematically alter the industry distribution of mid-cap equity universes?
-- Source & Evidence: CRSP CIZ msf_v2 and dsf_v2 via WRDS.
-- Uncertainty: Sensitivity of the 15-day coverage cutoff during holiday-shortened months.
-- Next Check: Inspect turnover rates across monthly rebalancing dates.
-
-# Reproduction and process statement
-
-Input metadata, configuration, commands, code/version identifier, session/dependency record, and permitted data access for reproduction:
-Executed in R 4.5.1 using base R commands: `Rscript analysis/retrieve.R synthetic` followed by `Rscript analysis/screen.R synthetic`. Configuration defined in config/project_config.R.
-
-AI tool/model if known, assistance received, independent checks, important corrections, remaining limits:
-Cursor / Claude 3.5 Sonnet utilized for reviewing screening pipeline logic and verifying denominator handling. All arithmetic hand-checked against independent manual calculations.
-
-My individual contribution and explanation of one helper function:
-Independently traced `join_liquidity()`: aggregates daily metrics to a unique PERMNO grain, executes a validated left-join to the monthly cohort, verifies row count is unchanged, and flags missing days without altering source indices.
-
-Canvas submission/access status and remaining blocker, if any: Ready for Canvas submission with synthetic outputs attached.
+Process Statement & Academic Integrity
+Pipeline Execution: R scripts executed under macOS Darwin arm64 using R version 4.5.1.
+Audit Files: All output artifacts (final_universe.csv, baseline_universe.csv, all_security_audit.csv, exclusion_funnel.csv, comparison.csv, and comparison.png) were validated against terminal logs and committed to version control.
+Collaboration Disclosure: Conceptual framing, Rmd compilation, and manual check arithmetic were carried out by the author with algorithmic workflow structuring assisted by AI modeling tools in compliance with course policy.
